@@ -1,0 +1,24 @@
+# Runs the MarkItDown MCP server as a long-running HTTP service.
+# Build context is the markitdown-mcp package (it has its own Dockerfile).
+#
+#   docker compose up -d --build      # start the server
+#   docker compose logs -f            # watch logs
+#   docker compose down               # stop it
+#
+# Server is reachable on http://127.0.0.1:3001  (MCP Streamable HTTP + SSE).
+# Drop files to convert into ./data on the host; they appear under /workdir in the container.
+
+services:
+  markitdown-mcp:
+    build:
+      context: ./packages/markitdown-mcp
+    image: markitdown-mcp:latest
+    container_name: markitdown-mcp
+    # Bind to 0.0.0.0 inside the container so the published port works,
+    # but only publish to localhost on the host for safety.
+    command: ["--http", "--host", "0.0.0.0", "--port", "3001"]
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - ./data:/workdir
+    restart: unless-stopped

@@ -1,0 +1,21 @@
+FROM python:3.13-slim-bullseye
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV EXIFTOOL_PATH=/usr/bin/exiftool
+ENV FFMPEG_PATH=/usr/bin/ffmpeg
+ENV MARKITDOWN_ENABLE_PLUGINS=True
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    exiftool && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY packages/markitdown /tmp/markitdown
+COPY packages/markitdown-mcp /tmp/markitdown-mcp
+
+RUN pip --no-cache-dir install "/tmp/markitdown[all]" /tmp/markitdown-mcp
+
+WORKDIR /workdir
+
+ENTRYPOINT ["markitdown-mcp"]
+CMD ["--http", "--host", "0.0.0.0"]
