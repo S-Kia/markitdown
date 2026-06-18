@@ -3,7 +3,7 @@ import sys
 import os
 from collections.abc import AsyncIterator
 import mcp.server.streamable_http as _mcp_http
-_mcp_http.MAXIMUM_MESSAGE_SIZE = 1024 * 1024 * 1024  # 1GB
+_mcp_http.MAXIMUM_MESSAGE_SIZE = 500 * 1024 * 1024  # 500MB
 from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
 from starlette.requests import Request
