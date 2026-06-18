@@ -4,8 +4,8 @@ import os
 from collections.abc import AsyncIterator
 from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
-from mcp.server.sse import SseServerTransport
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 from starlette.types import Receive, Scope, Send
 from mcp.server import Server
@@ -32,25 +32,12 @@ def check_plugins_enabled() -> bool:
 
 
 def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlette:
-    sse = SseServerTransport("/messages/")
     session_manager = StreamableHTTPSessionManager(
         app=mcp_server,
         event_store=None,
         json_response=True,
         stateless=True,
     )
-
-    async def handle_sse(request: Request) -> None:
-        async with sse.connect_sse(
-            request.scope,
-            request.receive,
-            request._send,
-        ) as (read_stream, write_stream):
-            await mcp_server.run(
-                read_stream,
-                write_stream,
-                mcp_server.create_initialization_options(),
-            )
 
     async def handle_streamable_http(
         scope: Scope, receive: Receive, send: Send
@@ -59,7 +46,6 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
 
     @contextlib.asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
-        """Context manager for session manager."""
         async with session_manager.run():
             print("Application started with StreamableHTTP session manager!")
             try:
@@ -67,12 +53,14 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
             finally:
                 print("Application shutting down...")
 
+    async def health(request: Request) -> JSONResponse:
+        return JSONResponse({"status": "ok"})
+
     return Starlette(
         debug=debug,
         routes=[
-            Route("/sse", endpoint=handle_sse),
+            Route("/health", endpoint=health),
             Mount("/mcp", app=handle_streamable_http),
-            Mount("/messages/", app=sse.handle_post_message),
         ],
         lifespan=lifespan,
     )
